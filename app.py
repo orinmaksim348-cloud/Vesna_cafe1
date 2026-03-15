@@ -14,20 +14,20 @@ app = Flask(__name__)
 
 # ==================== НАСТРОЙКИ КАФЕ ====================
 CAFE_NAME = "Кафе ВЕСНА"
-CAFE_ADDRESS = "г. Москва, ул. Тверская, д. 15"
-CAFE_PHONE = "+7 (999) 123-45-67"
+CAFE_ADDRESS = "г. Вознесеновка, ул. Гагрина, д.16"
+CAFE_PHONE = "+7 (903) 583-57-65"
 CAFE_EMAIL = "info@vesna-cafe.ru"
 CAFE_WORK_HOURS = "Ежедневно с 10:00 до 23:00"
-CAFE_DESCRIPTION = "Уютное кафе с домашней кухней в центре Москвы"
+CAFE_DESCRIPTION = "Уютное кафе с домашней кухней в центре города"
 CAFE_SLOGAN = "Вкусно, как дома"
-CAFE_LATITUDE = "55.7575"
-CAFE_LONGITUDE = "37.6155"
+CAFE_LATITUDE = "48.077615660593544"
+CAFE_LONGITUDE = "39.7918029284401"
 CAFE_IMAGE = "/static/images/cafe.jpg"
 CAFE_IMAGE2 = "/static/images/cafe-interior.jpg"
 
 SOCIAL_INSTAGRAM = "https://instagram.com/vesna.cafe"
-SOCIAL_VK = "https://vk.com/vesna.cafe"
-SOCIAL_TELEGRAM = "https://t.me/vesna_cafe"
+SOCIAL_VK = "https://vk.com/m.orin"
+SOCIAL_TELEGRAM = "https://t.me/cafe_vesna"
 
 # ==================== НАСТРОЙКИ БАЗЫ ДАННЫХ ====================
 DATABASE_URL = os.environ.get('DATABASE_URL')
