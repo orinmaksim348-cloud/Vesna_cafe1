@@ -1,0 +1,22 @@
+# Файлы окружения Python
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# База данных (локальная)
+*.db
+*.sqlite
+*.sqlite3
+
+# Файлы с секретами
+.env
+*.env
+
+# Файлы IDE
+.vscode/
+.idea/
+*.swp
+*.swo

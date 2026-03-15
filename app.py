@@ -3,46 +3,70 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
 import logging
-import sqlite3
+import psycopg2
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+import sys
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'cafe-vesna-secret-key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cafe_vesna.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['DEBUG'] = True
-app.config['JSON_AS_ASCII'] = False
 
 # ==================== НАСТРОЙКИ КАФЕ ====================
-# Вы можете изменить эти значения под свое кафе
 CAFE_NAME = "Кафе ВЕСНА"
-CAFE_ADDRESS = "г. Вознесеновка, ул. Гагарина 16"
+CAFE_ADDRESS = "г. Москва, ул. Тверская, д. 15"
 CAFE_PHONE = "+7 (999) 123-45-67"
 CAFE_EMAIL = "info@vesna-cafe.ru"
 CAFE_WORK_HOURS = "Ежедневно с 10:00 до 23:00"
-CAFE_DESCRIPTION = "Уютное кафе с домашней кухней в центре "
+CAFE_DESCRIPTION = "Уютное кафе с домашней кухней в центре Москвы"
 CAFE_SLOGAN = "Вкусно, как дома"
+CAFE_LATITUDE = "55.7575"
+CAFE_LONGITUDE = "37.6155"
+CAFE_IMAGE = "/static/images/cafe.jpg"
+CAFE_IMAGE2 = "/static/images/cafe-interior.jpg"
 
-
-CAFE_LATITUDE = "48.07736898278385"  # Широта
-CAFE_LONGITUDE = "39.79197807789805"  # Долгота
-
-# Фото заведения (положите фото в static/images/)
-CAFE_IMAGE = "/static/images/cafe.jpg"  # Основное фото (снаружи)
-CAFE_IMAGE2 = "/static/images/cafe-interior.jpg"  # Фото интерьера
-
-# Ссылки на соцсети (оставьте пустым, если нет)
 SOCIAL_INSTAGRAM = "https://instagram.com/vesna.cafe"
 SOCIAL_VK = "https://vk.com/vesna.cafe"
-SOCIAL_TELEGRAM = "https://t.me/cafe_vesna"
+SOCIAL_TELEGRAM = "https://t.me/vesna_cafe"
+
+# ==================== НАСТРОЙКИ БАЗЫ ДАННЫХ ====================
+# Приоритет: переменная окружения > .env файл > значение по умолчанию
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if not DATABASE_URL:
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+        DATABASE_URL = os.environ.get('DATABASE_URL')
+    except ImportError:
+        pass
+
+# Если всё ещё нет DATABASE_URL, используем SQLite для разработки
+if not DATABASE_URL:
+    DATABASE_URL = 'sqlite:///cafe_vesna.db'
+    logger.warning("⚠️ DATABASE_URL не найден, используется SQLite для разработки")
+else:
+    # Для PostgreSQL на Timeweb нужно исправить формат URL
+    if DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    logger.info(f"✅ Подключение к PostgreSQL: {DATABASE_URL.split('@')[1]}")
+
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-do-not-use-in-production')
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['DEBUG'] = os.environ.get('FLASK_ENV') == 'development'
+app.config['JSON_AS_ASCII'] = False
+
+# Настройки для пула соединений (важно для PostgreSQL)
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_size': 10,
+    'pool_recycle': 300,
+    'pool_pre_ping': True,
+}
 
 # Убеждаемся, что папка для изображений существует
 IMAGES_FOLDER = os.path.join(app.root_path, 'static', 'images')
 os.makedirs(IMAGES_FOLDER, exist_ok=True)
-logger.info(f"📁 Папка для изображений: {IMAGES_FOLDER}")
 
 # Инициализация SQLAlchemy
 db = SQLAlchemy(app)
@@ -75,7 +99,7 @@ class Order(db.Model):
     phone = db.Column(db.String(20), nullable=False)
     address = db.Column(db.String(200), nullable=False)
     comment = db.Column(db.Text)
-    items = db.Column(db.Text)  # JSON строка
+    items = db.Column(db.Text)
     total = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(20), default='new')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -103,7 +127,6 @@ def create_placeholder_image(filename):
     filepath = os.path.join(IMAGES_FOLDER, filename)
     if not os.path.exists(filepath):
         try:
-            # Создаем минимальный валидный JPEG
             with open(filepath, 'wb') as f:
                 f.write(b'\xFF\xD8\xFF\xE0\x00\x10JFIF\x00\x01\x01\x01\x00H\x00H\x00\x00')
             logger.info(f"✅ Создана заглушка: {filename}")
@@ -115,20 +138,20 @@ def create_placeholder_image(filename):
 
 # ==================== ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ ====================
 def init_database():
-    """Принудительно создает базу данных и заполняет тестовыми данными"""
+    """Инициализирует базу данных с тестовыми блюдами"""
     with app.app_context():
         try:
-            # Удаляем старые таблицы, если они есть
-            logger.info("🔄 Удаление старых таблиц...")
-            db.drop_all()
-            
-            # Создаем таблицы заново
-            logger.info("🔄 Создание новых таблиц...")
+            # Проверяем, нужно ли создавать таблицы
             db.create_all()
+            logger.info("✅ Таблицы проверены/созданы")
             
-            logger.info("✅ Таблицы успешно созданы!")
+            # Проверяем, есть ли уже данные
+            if MenuItem.query.count() > 0:
+                logger.info(f"📊 База данных уже содержит {MenuItem.query.count()} блюд")
+                return
             
-            # Данные о блюдах для меню
+            logger.info("🔄 Инициализация базы данных с тестовыми блюдами...")
+            
             dishes_data = [
                 {
                     "name": "Цезарь с курицей",
@@ -220,11 +243,8 @@ def init_database():
                 }
             ]
             
-            # Создаем элементы меню
             for dish in dishes_data:
-                # Создаем заглушку для изображения, если файла нет
                 create_placeholder_image(dish['filename'])
-                
                 image_url = f"/static/images/{dish['filename']}"
                 
                 item = MenuItem(
@@ -247,20 +267,8 @@ def init_database():
             logger.error(f"❌ Ошибка при инициализации базы данных: {e}")
             db.session.rollback()
 
-# Функция для принудительного удаления и создания БД
-def force_recreate_db():
-    """Полностью удаляет и пересоздает базу данных"""
-    db_path = os.path.join(app.root_path, 'cafe_vesna.db')
-    
-    # Удаляем старый файл базы данных
-    if os.path.exists(db_path):
-        try:
-            os.remove(db_path)
-            logger.info(f"🗑️ Удален старый файл базы данных: {db_path}")
-        except Exception as e:
-            logger.error(f"❌ Ошибка удаления БД: {e}")
-    
-    # Инициализируем заново
+# Инициализируем базу данных при запуске
+with app.app_context():
     init_database()
 
 # ==================== КОНТЕКСТНЫЙ ПРОЦЕССОР ====================
@@ -288,11 +296,9 @@ def utility_processor():
 
 # ==================== МАРШРУТЫ ====================
 
-# Главная страница (только информация о кафе)
 @app.route('/')
 def index():
     try:
-        # Проверяем, существуют ли фото кафе
         cafe_image_exists = image_exists(CAFE_IMAGE)
         cafe_image2_exists = image_exists(CAFE_IMAGE2)
         
@@ -303,7 +309,6 @@ def index():
         logger.error(f"Ошибка на главной странице: {e}")
         return render_template('error.html', error=str(e)), 500
 
-# Страница меню
 @app.route('/menu')
 def menu():
     try:
@@ -331,7 +336,6 @@ def menu():
         logger.error(f"Ошибка в меню: {e}")
         return render_template('error.html', error=str(e)), 500
 
-# API для корзины
 @app.route('/api/cart')
 def get_cart():
     try:
@@ -395,7 +399,6 @@ def update_cart(item_id):
         
         session['cart'] = cart
         
-        # Пересчет итогов
         total = 0
         items = []
         for id, qty in cart.items():
@@ -417,12 +420,10 @@ def update_cart(item_id):
         logger.error(f"Ошибка обновления корзины: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# Страница корзины
 @app.route('/cart')
 def view_cart():
     return render_template('cart.html')
 
-# Оформление заказа
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
     if request.method == 'POST':
@@ -432,7 +433,6 @@ def checkout():
             address = request.form.get('address')
             comment = request.form.get('comment')
             
-            # Валидация
             if not name or not phone or not address:
                 flash('Пожалуйста, заполните все обязательные поля', 'danger')
                 return redirect(url_for('checkout'))
@@ -443,7 +443,6 @@ def checkout():
                 flash('Корзина пуста', 'warning')
                 return redirect(url_for('menu'))
             
-            # Подсчет суммы и подготовка данных
             total = 0
             items_list = []
             for item_id, quantity in cart.items():
@@ -456,10 +455,8 @@ def checkout():
                     })
                     total += item.price * quantity
             
-            # Создание номера заказа
             order_number = f"VESNA-{datetime.now().strftime('%y%m%d%H%M')}-{len(items_list)}"
             
-            # Создаем заказ
             order = Order(
                 order_number=order_number,
                 customer_name=name,
@@ -474,7 +471,6 @@ def checkout():
             db.session.add(order)
             db.session.commit()
             
-            # Очищаем корзину
             session.pop('cart', None)
             
             return render_template('order_success.html', order=order)
@@ -487,7 +483,6 @@ def checkout():
     
     return render_template('checkout.html')
 
-# Страница успешного заказа
 @app.route('/order-success/<int:order_id>')
 def order_success(order_id):
     try:
@@ -497,100 +492,31 @@ def order_success(order_id):
         logger.error(f"Ошибка загрузки заказа: {e}")
         return render_template('error.html', error='Заказ не найден'), 404
 
-# Страница контактов (перенаправляем на главную)
 @app.route('/contacts')
 def contacts():
     return redirect(url_for('index'))
 
-# Страница о нас (перенаправляем на главную)
 @app.route('/about')
 def about():
     return redirect(url_for('index'))
 
-# ==================== ДИАГНОСТИЧЕСКИЕ МАРШРУТЫ ====================
-
-@app.route('/debug')
-def debug():
-    """Общая диагностика"""
-    with app.app_context():
-        try:
-            info = {
-                'app_name': CAFE_NAME,
-                'debug_mode': app.debug,
-                'database': app.config['SQLALCHEMY_DATABASE_URI'],
-                'images_folder': IMAGES_FOLDER,
-                'images_folder_exists': os.path.exists(IMAGES_FOLDER),
-                'database_exists': os.path.exists('cafe_vesna.db'),
-                'menu_items_count': MenuItem.query.count(),
-                'orders_count': Order.query.count(),
-                'session_cart': session.get('cart', {}),
-                'cafe_address': CAFE_ADDRESS,
-                'cafe_coordinates': f"{CAFE_LATITUDE}, {CAFE_LONGITUDE}"
-            }
-            return render_template('debug.html', info=info)
-        except Exception as e:
-            return f"<h1>Ошибка диагностики</h1><p>{str(e)}</p>"
-
-@app.route('/reset-db-force')
-def reset_db_force():
-    """Принудительно пересоздает базу данных"""
-    if app.config['DEBUG']:
-        try:
-            force_recreate_db()
-            return """
-            <h1>✅ База данных пересоздана!</h1>
-            <p>База данных успешно пересоздана с правильной структурой.</p>
-            <a href="/">На главную</a> | <a href="/menu">В меню</a>
-            """
-        except Exception as e:
-            return f"<h1>❌ Ошибка</h1><p>{str(e)}</p>"
-    return "❌ Доступно только в режиме отладки"
-
-# ==================== ОБРАБОТЧИКИ ОШИБОК ====================
-
-@app.errorhandler(404)
-def not_found_error(error):
-    return render_template('404.html'), 404
-
-@app.errorhandler(500)
-def internal_error(error):
-    db.session.rollback()
-    logger.error(f"Внутренняя ошибка сервера: {error}")
-    return render_template('500.html'), 500
+@app.route('/health')
+def health():
+    """Endpoint для проверки здоровья приложения"""
+    try:
+        # Проверяем подключение к базе данных
+        db.session.execute('SELECT 1').scalar()
+        return jsonify({'status': 'healthy', 'database': 'connected'})
+    except Exception as e:
+        return jsonify({'status': 'unhealthy', 'error': str(e)}), 500
 
 # ==================== ЗАПУСК ПРИЛОЖЕНИЯ ====================
 if __name__ == '__main__':
     logger.info("=" * 60)
     logger.info(f"🍽️  Запуск {CAFE_NAME}")
     logger.info(f"📍 Адрес: {CAFE_ADDRESS}")
-    logger.info(f"📁 Папка с изображениями: {IMAGES_FOLDER}")
-    logger.info(f"🗄️  База данных: {os.path.join(app.root_path, 'cafe_vesna.db')}")
+    logger.info(f"🗄️  База данных: {app.config['SQLALCHEMY_DATABASE_URI'].split('@')[1] if '@' in app.config['SQLALCHEMY_DATABASE_URI'] else 'SQLite'}")
     logger.info("=" * 60)
     
-    # Принудительно пересоздаем БД при первом запуске
-    with app.app_context():
-        try:
-            # Проверяем, есть ли уже таблицы
-            inspector = db.inspect(db.engine)
-            if 'menu_item' not in inspector.get_table_names():
-                logger.info("🆕 База данных не найдена, создаем новую...")
-                init_database()
-            else:
-                # Проверяем наличие колонки created_at
-                columns = [col['name'] for col in inspector.get_columns('menu_item')]
-                if 'created_at' not in columns:
-                    logger.warning("⚠️ Отсутствует колонка created_at, пересоздаем БД...")
-                    force_recreate_db()
-                else:
-                    logger.info("✅ База данных имеет правильную структуру")
-                    
-                    # Проверяем наличие данных
-                    if MenuItem.query.count() == 0:
-                        logger.info("🔄 База данных пуста, добавляем тестовые данные...")
-                        init_database()
-        except Exception as e:
-            logger.error(f"❌ Ошибка при проверке БД: {e}")
-            logger.info("🔄 Пробуем пересоздать БД...")
-            force_recreate_db()
-    
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=app.config['DEBUG'])
