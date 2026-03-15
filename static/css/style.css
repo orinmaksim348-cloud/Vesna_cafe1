@@ -157,7 +157,7 @@ main {
     cursor: pointer;
 }
 
-/* ===== АДАПТИВНАЯ НАВИГАЦИЯ ===== */
+/* ===== МОБИЛЬНАЯ НАВИГАЦИЯ ===== */
 @media (max-width: 768px) {
     .menu-toggle {
         display: block;
@@ -165,8 +165,8 @@ main {
     
     .navbar-menu {
         display: none;
-        position: absolute;
-        top: 100%;
+        position: fixed;
+        top: 60px;
         left: 0;
         right: 0;
         background: var(--bg-white);
@@ -174,6 +174,7 @@ main {
         gap: 0;
         padding: 20px;
         box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        z-index: 999;
     }
     
     .navbar-menu.active {
@@ -185,6 +186,11 @@ main {
         padding: 15px;
         text-align: center;
         border-bottom: 1px solid #f0f0f0;
+        font-size: 1.1rem;
+    }
+    
+    .navbar-menu a:last-child {
+        border-bottom: none;
     }
     
     .logo-text {
@@ -221,22 +227,27 @@ main {
     flex-wrap: wrap;
 }
 
+/* ===== МОБИЛЬНАЯ ГЕРОЙ СЕКЦИЯ ===== */
 @media (max-width: 768px) {
     .hero {
         padding: 40px 15px;
+        min-height: auto;
     }
     
     .hero h1 {
         font-size: 2rem;
+        margin-bottom: 10px;
     }
     
     .hero p {
         font-size: 1rem;
+        margin-bottom: 20px;
     }
     
     .hero-buttons {
         flex-direction: column;
         align-items: center;
+        gap: 10px;
     }
     
     .hero-buttons .btn {
@@ -292,7 +303,15 @@ main {
     width: 100%;
 }
 
-/* ===== СЕКЦИИ ===== */
+/* ===== МОБИЛЬНЫЕ КНОПКИ ===== */
+@media (max-width: 768px) {
+    .btn {
+        padding: 10px 20px;
+        font-size: 0.95rem;
+    }
+}
+
+/* ===== ЗАГОЛОВКИ СЕКЦИЙ ===== */
 .section-title {
     text-align: center;
     font-size: 2rem;
@@ -313,23 +332,30 @@ main {
     background: var(--accent);
 }
 
+/* ===== МОБИЛЬНЫЕ ЗАГОЛОВКИ ===== */
 @media (max-width: 768px) {
     .section-title {
-        font-size: 1.5rem;
+        font-size: 1.6rem;
         margin-bottom: 20px;
+        padding-bottom: 10px;
+    }
+    
+    .section-title::after {
+        width: 60px;
+        height: 2px;
     }
 }
 
-/* ===== ПРЕИМУЩЕСТВА (ИСПРАВЛЕННАЯ ВЕРСИЯ) ===== */
+/* ===== ПРЕИМУЩЕСТВА (ИДЕАЛЬНО ДЛЯ ТЕЛЕФОНА) ===== */
 .features-section {
-    padding: 40px 0;
+    padding: 30px 0;
 }
 
 .features-grid {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    max-width: 500px;
+    max-width: 100%;
     margin: 0 auto;
 }
 
@@ -341,7 +367,8 @@ main {
     display: flex;
     align-items: center;
     gap: 20px;
-    transition: transform 0.3s;
+    transition: transform 0.3s, box-shadow 0.3s;
+    width: 100%;
 }
 
 .feature-card:hover {
@@ -374,13 +401,12 @@ main {
     margin: 0;
 }
 
-/* Десктопная версия */
+/* ===== ДЕСКТОПНАЯ ВЕРСИЯ ПРЕИМУЩЕСТВ ===== */
 @media (min-width: 769px) {
     .features-grid {
         flex-direction: row;
         flex-wrap: wrap;
         justify-content: center;
-        max-width: 100%;
         gap: 20px;
     }
     
@@ -394,6 +420,7 @@ main {
     
     .feature-card:hover {
         transform: translateY(-5px);
+        transform: translateX(0) translateY(-5px);
     }
     
     .feature-icon {
@@ -514,6 +541,7 @@ main {
     font-size: 0.9rem;
 }
 
+/* ===== МОБИЛЬНЫЕ КАРТОЧКИ ===== */
 @media (max-width: 768px) {
     .cards-grid {
         grid-template-columns: 1fr;
@@ -522,6 +550,33 @@ main {
     
     .card-image {
         height: 180px;
+    }
+    
+    .card-content {
+        padding: 12px;
+    }
+    
+    .card-title {
+        font-size: 1rem;
+    }
+    
+    .card-price {
+        font-size: 1.1rem;
+    }
+    
+    .card-description {
+        font-size: 0.85rem;
+        -webkit-line-clamp: 2;
+    }
+    
+    .card-meta {
+        font-size: 0.75rem;
+        gap: 10px;
+    }
+    
+    .card-footer .btn {
+        padding: 10px 0;
+        font-size: 0.85rem;
     }
 }
 
@@ -554,17 +609,27 @@ main {
     color: white;
 }
 
+/* ===== МОБИЛЬНЫЕ КАТЕГОРИИ ===== */
 @media (max-width: 768px) {
     .categories {
         flex-wrap: nowrap;
         overflow-x: auto;
         justify-content: flex-start;
-        padding: 10px 0;
+        padding: 10px 0 15px;
         -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 8px;
+    }
+    
+    .categories::-webkit-scrollbar {
+        display: none;
     }
     
     .category-btn {
         flex: 0 0 auto;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        white-space: nowrap;
     }
 }
 
@@ -619,20 +684,34 @@ main {
     object-fit: cover;
 }
 
+.cart-item-info {
+    min-width: 0;
+}
+
 .cart-item-name {
     font-weight: 600;
     margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .cart-item-price {
     color: var(--primary);
     font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.cart-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .cart-quantity {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .quantity-btn {
@@ -662,12 +741,14 @@ main {
     color: var(--primary-dark);
     min-width: 80px;
     text-align: right;
+    font-size: 1.1rem;
 }
 
 .remove-item {
     color: #f44336;
     cursor: pointer;
     transition: all 0.3s;
+    font-size: 1.2rem;
 }
 
 .remove-item:hover {
@@ -693,10 +774,12 @@ main {
     border-top: 2px solid #f0f0f0;
 }
 
+/* ===== МОБИЛЬНАЯ КОРЗИНА ===== */
 @media (max-width: 768px) {
     .cart-item {
         grid-template-columns: 60px 1fr;
         position: relative;
+        padding: 12px;
     }
     
     .cart-item-image {
@@ -704,16 +787,23 @@ main {
         height: 60px;
     }
     
-    .cart-quantity {
+    .cart-item-info {
+        grid-column: 2;
+    }
+    
+    .cart-item-actions {
         grid-column: 1 / -1;
-        justify-content: center;
+        justify-content: space-between;
         margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #f0f0f0;
     }
     
     .cart-item-total {
         grid-column: 1 / -1;
         text-align: center;
         font-size: 1.1rem;
+        margin-top: 5px;
     }
     
     .remove-item {
@@ -725,6 +815,10 @@ main {
     .cart-summary {
         position: static;
         margin-top: 20px;
+    }
+    
+    .cart-total {
+        font-size: 1.2rem;
     }
 }
 
@@ -738,6 +832,7 @@ main {
     margin-bottom: 5px;
     font-weight: 500;
     color: var(--text-dark);
+    font-size: 0.95rem;
 }
 
 .form-control {
@@ -774,10 +869,58 @@ textarea.form-control {
     display: block;
 }
 
+/* ===== МОБИЛЬНАЯ КАРТА ===== */
 @media (max-width: 768px) {
     .map-container iframe {
         height: 250px;
     }
+}
+
+/* ===== КОНТАКТНАЯ ИНФОРМАЦИЯ ===== */
+.contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: var(--bg-white);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+
+.contact-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.contact-text {
+    flex: 1;
+}
+
+.contact-text h4 {
+    margin: 0 0 5px;
+    font-size: 1rem;
+    color: var(--primary-dark);
+}
+
+.contact-text p {
+    margin: 0;
+    color: #666;
+    font-size: 0.9rem;
 }
 
 /* ===== ФУТЕР ===== */
@@ -831,6 +974,23 @@ textarea.form-control {
     color: white;
 }
 
+.social-links {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.social-links a {
+    color: white;
+    font-size: 1.5rem;
+    transition: all 0.3s;
+}
+
+.social-links a:hover {
+    color: var(--accent);
+    transform: translateY(-3px);
+}
+
 .footer-bottom {
     text-align: center;
     padding-top: 20px;
@@ -839,7 +999,13 @@ textarea.form-control {
     color: rgba(255,255,255,0.6);
 }
 
+/* ===== МОБИЛЬНЫЙ ФУТЕР ===== */
 @media (max-width: 768px) {
+    .footer {
+        padding: 30px 0 15px;
+        margin-top: 40px;
+    }
+    
     .footer-content {
         grid-template-columns: 1fr;
         gap: 25px;
@@ -849,6 +1015,10 @@ textarea.form-control {
     .footer-column h4::after {
         left: 50%;
         transform: translateX(-50%);
+    }
+    
+    .social-links {
+        justify-content: center;
     }
 }
 
@@ -873,7 +1043,41 @@ textarea.form-control {
     text-align: center;
 }
 
-.mt-3 { margin-top: 20px; }
-.mb-3 { margin-bottom: 20px; }
-.mt-5 { margin-top: 40px; }
-.mb-5 { margin-bottom: 40px; }
+.text-left {
+    text-align: left;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.mt-1 { margin-top: 10px; }
+.mt-2 { margin-top: 20px; }
+.mt-3 { margin-top: 30px; }
+.mt-4 { margin-top: 40px; }
+.mt-5 { margin-top: 50px; }
+
+.mb-1 { margin-bottom: 10px; }
+.mb-2 { margin-bottom: 20px; }
+.mb-3 { margin-bottom: 30px; }
+.mb-4 { margin-bottom: 40px; }
+.mb-5 { margin-bottom: 50px; }
+
+.p-1 { padding: 10px; }
+.p-2 { padding: 20px; }
+.p-3 { padding: 30px; }
+
+.w-100 { width: 100%; }
+
+.d-none { display: none; }
+.d-block { display: block; }
+.d-flex { display: flex; }
+
+.flex-wrap { flex-wrap: wrap; }
+.flex-column { flex-direction: column; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.align-center { align-items: center; }
+
+.gap-1 { gap: 10px; }
+.gap-2 { gap: 20px; }
