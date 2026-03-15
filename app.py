@@ -66,13 +66,13 @@ app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
+# ⚠️ ВАЖНО: Убираем проблемный connect_timeout
+# Для PostgreSQL используем стандартные настройки пула
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_size': 10,
     'pool_recycle': 300,
     'pool_pre_ping': True,
-    'connect_args': {
-        'connect_timeout': 10
-    }
+    # 'connect_args' убрано, так как вызывает ошибку
 }
 
 IMAGES_FOLDER = os.path.join(app.root_path, 'static', 'images')
@@ -505,6 +505,7 @@ def about():
 def health():
     """Endpoint для проверки здоровья приложения"""
     try:
+        # Используем text() для сырого SQL
         db.session.execute(text('SELECT 1')).scalar()
         
         db_driver = 'PostgreSQL' if 'postgresql' in DATABASE_URL else 'SQLite'
@@ -530,6 +531,25 @@ def health():
             'status': 'unhealthy',
             'error': str(e)
         }), 500
+
+@app.route('/debug-db')
+def debug_db():
+    """Диагностика подключения к БД"""
+    info = {
+        'database_url': DATABASE_URL.replace('://', '://***:***@') if '@' in DATABASE_URL else DATABASE_URL,
+        'driver': 'PostgreSQL' if 'postgresql' in DATABASE_URL else 'SQLite',
+        'tables_exist': False,
+        'menu_items_count': 0
+    }
+    
+    try:
+        info['tables_exist'] = db.inspect(db.engine).has_table('menu_item')
+        info['menu_items_count'] = MenuItem.query.count()
+        info['connection_test'] = '✅ Успешно'
+    except Exception as e:
+        info['connection_test'] = f'❌ Ошибка: {str(e)}'
+    
+    return jsonify(info)
 
 # ==================== ЗАПУСК ПРИЛОЖЕНИЯ ====================
 if __name__ == '__main__':
