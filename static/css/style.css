@@ -970,6 +970,14 @@ textarea.form-control {
     border-radius: var(--border-radius-sm);
     text-align: center;
     box-shadow: var(--shadow);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
 }
 
 .feature-icon {
@@ -980,19 +988,82 @@ textarea.form-control {
 
 .feature-card h4 {
     margin-bottom: 10px;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
+    color: var(--primary-dark);
+    font-weight: 600;
 }
 
 .feature-card p {
     color: #666;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     margin: 0;
+    line-height: 1.5;
+    flex: 1;
 }
 
-@media (max-width: 640px) {
+/* Мобильная версия - одна колонка */
+@media (max-width: 768px) {
     .features-grid {
         grid-template-columns: 1fr;
         gap: 15px;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .feature-card {
+        padding: 20px;
+        display: flex;
+        flex-direction: row;
+        text-align: left;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .feature-card:hover {
+        transform: translateX(5px);
+    }
+    
+    .feature-icon {
+        font-size: 2rem;
+        margin-bottom: 0;
+        min-width: 50px;
+        text-align: center;
+    }
+    
+    .feature-card h4 {
+        margin-bottom: 5px;
+        font-size: 1.1rem;
+    }
+    
+    .feature-card p {
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+}
+
+/* Для очень маленьких экранов */
+@media (max-width: 480px) {
+    .features-grid {
+        max-width: 100%;
+    }
+    
+    .feature-card {
+        padding: 15px;
+        gap: 12px;
+    }
+    
+    .feature-icon {
+        font-size: 1.8rem;
+        min-width: 40px;
+    }
+    
+    .feature-card h4 {
+        font-size: 1rem;
+    }
+    
+    .feature-card p {
+        font-size: 0.85rem;
     }
 }
 
