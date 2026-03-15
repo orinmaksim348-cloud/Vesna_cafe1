@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ cafe_name }} - {% block title %}{% endblock %}</title>
+    
+    <!-- Шрифты и иконки -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Наши стили -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Навигация -->
+    <nav class="navbar">
+        <div class="container navbar-container">
+            <a href="{{ url_for('index') }}" class="navbar-logo">
+                <div class="logo-icon">В</div>
+                <div class="logo-text">ВЕСНА<span>.</span></div>
+            </a>
+            
+            <button class="menu-toggle" id="menuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <ul class="navbar-menu" id="navbarMenu">
+                <li><a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">Главная</a></li>
+                <li><a href="{{ url_for('menu') }}" class="{% if request.endpoint == 'menu' %}active{% endif %}">Меню</a></li>
+            </ul>
+            
+            <div class="navbar-actions">
+                <a href="{{ url_for('view_cart') }}" class="cart-icon">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span class="cart-count" id="cartCount">0</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Футер -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h4>{{ cafe_name }}</h4>
+                    <p>{{ cafe_description }}</p>
+                    <div style="margin-top: 20px;">
+                        {% if social_instagram %}
+                        <a href="{{ social_instagram }}" target="_blank" style="color: white; margin-right: 15px;"><i class="fab fa-instagram fa-2x"></i></a>
+                        {% endif %}
+                        {% if social_vk %}
+                        <a href="{{ social_vk }}" target="_blank" style="color: white; margin-right: 15px;"><i class="fab fa-vk fa-2x"></i></a>
+                        {% endif %}
+                        {% if social_telegram %}
+                        <a href="{{ social_telegram }}" target="_blank" style="color: white;"><i class="fab fa-telegram fa-2x"></i></a>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Меню</h4>
+                    <ul>
+                        <li><a href="{{ url_for('menu') }}?category=Салаты">Салаты</a></li>
+                        <li><a href="{{ url_for('menu') }}?category=Супы">Супы</a></li>
+                        <li><a href="{{ url_for('menu') }}?category=Горячее">Горячее</a></li>
+                        <li><a href="{{ url_for('menu') }}?category=Десерты">Десерты</a></li>
+                        <li><a href="{{ url_for('menu') }}?category=Напитки">Напитки</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Контакты</h4>
+                    <ul>
+                        <li><i class="fas fa-phone"></i> {{ cafe_phone }}</li>
+                        <li><i class="fas fa-envelope"></i> {{ cafe_email }}</li>
+                        <li><i class="fas fa-map-marker-alt"></i> {{ cafe_address }}</li>
+                        <li><i class="fas fa-clock"></i> {{ cafe_work_hours }}</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2024 {{ cafe_name }}. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Скрипты -->
+    <script>
+        // Мобильное меню
+        document.getElementById('menuToggle')?.addEventListener('click', function() {
+            document.getElementById('navbarMenu').classList.toggle('active');
+        });
+        
+        // Обновление счетчика корзины
+        function updateCartCount() {
+            fetch('/api/cart')
+                .then(response => response.json())
+                .then(data => {
+                    const cartCount = document.getElementById('cartCount');
+                    if (cartCount) {
+                        cartCount.textContent = data.count;
+                        cartCount.style.display = data.count > 0 ? 'flex' : 'none';
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+        
+        document.addEventListener('DOMContentLoaded', updateCartCount);
+        setInterval(updateCartCount, 5000);
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

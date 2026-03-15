@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Диагностика{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="section-title">🔧 Диагностика системы</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Информация о приложении</h5>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <tr>
+                    <th>Название:</th>
+                    <td>{{ info.app_name }}</td>
+                </tr>
+                <tr>
+                    <th>Режим отладки:</th>
+                    <td>{% if info.debug_mode %}✅ Включен{% else %}❌ Выключен{% endif %}</td>
+                </tr>
+                <tr>
+                    <th>База данных:</th>
+                    <td>{{ info.database }}</td>
+                </tr>
+                <tr>
+                    <th>Файл БД существует:</th>
+                    <td>{% if info.database_exists %}✅ Да{% else %}❌ Нет{% endif %}</td>
+                </tr>
+                <tr>
+                    <th>Папка с изображениями:</th>
+                    <td>{{ info.images_folder }}</td>
+                </tr>
+                <tr>
+                    <th>Папка существует:</th>
+                    <td>{% if info.images_folder_exists %}✅ Да{% else %}❌ Нет{% endif %}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">Статистика</h5>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <tr>
+                    <th>Блюд в меню:</th>
+                    <td>{{ info.menu_items_count }}</td>
+                </tr>
+                <tr>
+                    <th>Заказов:</th>
+                    <td>{{ info.orders_count }}</td>
+                </tr>
+                <tr>
+                    <th>Товаров в корзине (сессия):</th>
+                    <td>{{ info.session_cart|length }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    
+    <div class="text-center">
+        <a href="{{ url_for('debug_images') }}" class="btn btn-primary">
+            <i class="fas fa-image"></i> Диагностика изображений
+        </a>
+        <a href="{{ url_for('index') }}" class="btn btn-success">
+            <i class="fas fa-home"></i> На главную
+        </a>
+    </div>
+</div>
+{% endblock %}

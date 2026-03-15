@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Контакты{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="section-title">Контакты</h1>
+    
+    <div class="row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+        <!-- Контактная информация -->
+        <div class="bg-white" style="padding: 40px; border-radius: 20px; box-shadow: var(--shadow);">
+            <h3 style="color: var(--primary-dark); margin-bottom: 30px;">Как нас найти</h3>
+            
+            <div style="margin-bottom: 25px; display: flex; align-items: center;">
+                <i class="fas fa-map-marker-alt" style="color: var(--primary); font-size: 1.5rem; width: 40px;"></i>
+                <span style="font-size: 1.1rem;">г. Москва, ул. Пушкина, д. 10</span>
+            </div>
+            
+            <div style="margin-bottom: 25px; display: flex; align-items: center;">
+                <i class="fas fa-phone" style="color: var(--primary); font-size: 1.5rem; width: 40px;"></i>
+                <span style="font-size: 1.1rem;">+7 (999) 123-45-67</span>
+            </div>
+            
+            <div style="margin-bottom: 25px; display: flex; align-items: center;">
+                <i class="fas fa-envelope" style="color: var(--primary); font-size: 1.5rem; width: 40px;"></i>
+                <span style="font-size: 1.1rem;">info@vesna-cafe.ru</span>
+            </div>
+            
+            <div style="margin-bottom: 25px; display: flex; align-items: center;">
+                <i class="fas fa-clock" style="color: var(--primary); font-size: 1.5rem; width: 40px;"></i>
+                <span style="font-size: 1.1rem;">Ежедневно с 10:00 до 23:00</span>
+            </div>
+            
+            <div style="margin-top: 40px;">
+                <h4 style="margin-bottom: 20px;">Мы в соцсетях</h4>
+                <div>
+                    <a href="#" style="color: var(--primary); margin-right: 20px; font-size: 2rem;"><i class="fab fa-instagram"></i></a>
+                    <a href="#" style="color: var(--primary); margin-right: 20px; font-size: 2rem;"><i class="fab fa-vk"></i></a>
+                    <a href="#" style="color: var(--primary); font-size: 2rem;"><i class="fab fa-telegram"></i></a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Карта -->
+        <div class="bg-white" style="padding: 20px; border-radius: 20px; box-shadow: var(--shadow);">
+            <iframe 
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2245.334545372345!2d37.61583131590115!3d55.752023980553!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46b54a5a4c5a5e5f%3A0x5a5e5f5a5e5f5a5e!2sMoscow!5e0!3m2!1sru!2sru!4v1620000000000!5m2!1sru!2sru" 
+                width="100%" 
+                height="450" 
+                style="border:0; border-radius: 15px;" 
+                allowfullscreen="" 
+                loading="lazy">
+            </iframe>
+        </div>
+    </div>
+    
+    <!-- Форма обратной связи -->
+    <div class="bg-white" style="padding: 40px; border-radius: 20px; box-shadow: var(--shadow); margin-top: 30px;">
+        <h3 style="color: var(--primary-dark); margin-bottom: 30px; text-align: center;">Напишите нам</h3>
+        
+        <form id="contactForm" style="max-width: 600px; margin: 0 auto;">
+            <div class="form-group">
+                <label class="form-label">Ваше имя</label>
+                <input type="text" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Сообщение</label>
+                <textarea class="form-control" rows="5" required></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="fas fa-paper-plane"></i> Отправить
+            </button>
+        </form>
+    </div>
+    
+    <!-- Режим работы -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 30px;">
+        <div class="card" style="text-align: center; padding: 20px;">
+            <i class="fas fa-coffee" style="font-size: 2rem; color: var(--primary); margin-bottom: 15px;"></i>
+            <h4>Завтраки</h4>
+            <p>10:00 - 12:00</p>
+        </div>
+        <div class="card" style="text-align: center; padding: 20px;">
+            <i class="fas fa-utensils" style="font-size: 2rem; color: var(--primary); margin-bottom: 15px;"></i>
+            <h4>Обеды</h4>
+            <p>12:00 - 16:00</p>
+        </div>
+        <div class="card" style="text-align: center; padding: 20px;">
+            <i class="fas fa-wine-glass-alt" style="font-size: 2rem; color: var(--primary); margin-bottom: 15px;"></i>
+            <h4>Ужины</h4>
+            <p>16:00 - 23:00</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// Обработка формы обратной связи
+document.getElementById('contactForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    alert('Спасибо за сообщение! Мы свяжемся с вами в ближайшее время.');
+    this.reset();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}О нас{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="section-title">О кафе "ВЕСНА"</h1>
+    
+    <div class="row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px;">
+        <div>
+            <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600" 
+                 alt="Интерьер" 
+                 style="width: 100%; border-radius: 20px; box-shadow: var(--shadow);">
+        </div>
+        <div>
+            <h3 style="color: var(--primary-dark); margin-bottom: 20px;">Наша история</h3>
+            <p style="margin-bottom: 20px; line-height: 1.8;">
+                Кафе "ВЕСНА" открыло свои двери в 2015 году. С самого начала мы хотели создать 
+                место, где каждый гость будет чувствовать себя как дома. Уютная атмосфера, 
+                внимательный персонал и вкусная домашняя еда - вот что отличает нас.
+            </p>
+            <p style="margin-bottom: 20px; line-height: 1.8;">
+                За годы работы мы завоевали любовь тысяч гостей. Многие приходят к нам не только 
+                поесть, но и просто отдохнуть, провести время с семьей или друзьями.
+            </p>
+        </div>
+    </div>
+    
+    <div class="row" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin: 40px 0;">
+        <div class="card" style="text-align: center; padding: 30px;">
+            <i class="fas fa-leaf" style="font-size: 3rem; color: var(--primary); margin-bottom: 20px;"></i>
+            <h4>Свежие продукты</h4>
+            <p>Мы используем только свежие и качественные продукты от проверенных поставщиков</p>
+        </div>
+        <div class="card" style="text-align: center; padding: 30px;">
+            <i class="fas fa-heart" style="font-size: 3rem; color: var(--primary); margin-bottom: 20px;"></i>
+            <h4>Домашняя атмосфера</h4>
+            <p>У нас вы почувствуете себя как дома в кругу близких</p>
+        </div>
+        <div class="card" style="text-align: center; padding: 30px;">
+            <i class="fas fa-truck" style="font-size: 3rem; color: var(--primary); margin-bottom: 20px;"></i>
+            <h4>Быстрая доставка</h4>
+            <p>Доставим ваш заказ горячим прямо к двери</p>
+        </div>
+    </div>
+    
+    <div class="bg-white" style="padding: 40px; border-radius: 20px; box-shadow: var(--shadow);">
+        <h3 style="color: var(--primary-dark); margin-bottom: 20px; text-align: center;">Наша команда</h3>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px;">
+            <div style="text-align: center;">
+                <img src="https://images.unsplash.com/photo-1581299894007-aaa50297cf16?w=400" 
+                     alt="Шеф-повар" 
+                     style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; margin-bottom: 15px;">
+                <h4>Анна Петрова</h4>
+                <p style="color: #666;">Шеф-повар</p>
+            </div>
+            <div style="text-align: center;">
+                <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400" 
+                     alt="Управляющий" 
+                     style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; margin-bottom: 15px;">
+                <h4>Иван Смирнов</h4>
+                <p style="color: #666;">Управляющий</p>
+            </div>
+            <div style="text-align: center;">
+                <img src="https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=400" 
+                     alt="Кондитер" 
+                     style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; margin-bottom: 15px;">
+                <h4>Елена Иванова</h4>
+                <p style="color: #666;">Шеф-кондитер</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

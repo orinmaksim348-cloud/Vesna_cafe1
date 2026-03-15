@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Меню{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="section-title">Наше меню</h1>
+    
+    <!-- Поиск -->
+    <div class="search-box">
+        <input type="text" class="search-input" placeholder="Поиск блюд..." id="searchInput" 
+               value="{{ search }}" onkeyup="if(event.key === 'Enter') searchItems()">
+    </div>
+    
+    <!-- Категории -->
+    <div class="categories">
+        <a href="{{ url_for('menu') }}" class="category-btn {% if selected_category == 'all' or not selected_category %}active{% endif %}">
+            Все
+        </a>
+        {% for category in categories %}
+        <a href="{{ url_for('menu') }}?category={{ category }}" 
+           class="category-btn {% if selected_category == category %}active{% endif %}">
+            {{ category }}
+        </a>
+        {% endfor %}
+    </div>
+    
+    <!-- Сетка блюд -->
+<div class="cards-grid">
+    {% for item in items %}
+    <div class="card fade-in">
+        {% if item.is_special %}
+        <div class="card-badge">Хит</div>
+        {% endif %}
+        <div class="card-image" style="height: 200px; background: #f8f9fa; display: flex; align-items: center; justify-content: center;">
+            {% if item.image_url %}
+            <img src="{{ item.image_url }}" 
+                 alt="{{ item.name }}" 
+                 style="width: 100%; height: 100%; object-fit: cover;"
+                 onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\'fas fa-utensils\' style=\'font-size: 4rem; color: #ccc;\'></i>'">
+            {% else %}
+            <i class="fas fa-utensils" style="font-size: 4rem; color: #ccc;"></i>
+            {% endif %}
+        </div>
+        <div class="card-content">
+            <div class="card-header">
+                <h3 class="card-title">{{ item.name }}</h3>
+                <span class="card-price">{{ item.price }} ₽</span>
+            </div>
+            <p class="card-description">{{ item.description }}</p>
+            <div class="card-meta">
+                <span><i class="fas fa-weight-hanging"></i> {{ item.weight }}</span>
+                <span><i class="fas fa-fire"></i> {{ item.calories }} ккал</span>
+            </div>
+            <div class="card-footer">
+                <button class="btn btn-primary add-to-cart" data-id="{{ item.id }}">
+                    <i class="fas fa-shopping-bag"></i> В корзину
+                </button>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center" style="grid-column: 1/-1; padding: 50px;">
+        <i class="fas fa-search fa-3x" style="color: #ccc; margin-bottom: 20px;"></i>
+        <h3>Ничего не найдено</h3>
+        <p>Попробуйте изменить параметры поиска</p>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+function searchItems() {
+    const search = document.getElementById('searchInput').value;
+    const url = new URL(window.location.href);
+    url.searchParams.set('search', search);
+    window.location.href = url.toString();
+}
+
+// Добавление в корзину
+document.querySelectorAll('.add-to-cart').forEach(button => {
+    button.addEventListener('click', function() {
+        const itemId = this.dataset.id;
+        
+        fetch(`/api/cart/add/${itemId}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('cartCount').textContent = data.cart_count;
+                document.getElementById('cartCount').style.display = 'flex';
+                alert('Товар добавлен в корзину!');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Корзина{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="section-title">Корзина</h1>
+    
+    <div class="row" style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
+        <!-- Список товаров -->
+        <div class="cart-items" id="cartItems">
+            <!-- Товары будут загружены через JavaScript -->
+        </div>
+        
+        <!-- Итого -->
+        <div class="cart-summary">
+            <h3 style="margin-bottom: 20px;">Ваш заказ</h3>
+            
+            <div id="cartSummary">
+                <div class="text-center" style="padding: 30px;">
+                    <div class="spinner" style="margin: 0 auto;"></div>
+                    <p style="margin-top: 15px;">Загрузка...</p>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <a href="{{ url_for('checkout') }}" class="btn btn-success w-100" id="checkoutBtn" style="display: none;">
+                    <i class="fas fa-check"></i> Оформить заказ
+                </a>
+            </div>
+            
+            <div style="margin-top: 10px;">
+                <a href="{{ url_for('menu') }}" class="btn btn-outline w-100">
+                    <i class="fas fa-arrow-left"></i> Продолжить покупки
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Загрузка корзины
+function loadCart() {
+    fetch('/api/cart')
+        .then(response => response.json())
+        .then(data => {
+            const cartItems = document.getElementById('cartItems');
+            const cartSummary = document.getElementById('cartSummary');
+            const checkoutBtn = document.getElementById('checkoutBtn');
+            
+            if (data.items.length === 0) {
+                cartItems.innerHTML = `
+                    <div class="text-center" style="background: white; padding: 50px; border-radius: 15px;">
+                        <i class="fas fa-shopping-bag fa-4x" style="color: #ccc; margin-bottom: 20px;"></i>
+                        <h3>Корзина пуста</h3>
+                        <p style="color: #666; margin-bottom: 20px;">Добавьте блюда из меню</p>
+                        <a href="{{ url_for('menu') }}" class="btn btn-primary">Перейти в меню</a>
+                    </div>
+                `;
+                cartSummary.innerHTML = `
+                    <div class="text-center" style="color: #666;">
+                        <p>Корзина пуста</p>
+                    </div>
+                `;
+                checkoutBtn.style.display = 'none';
+                return;
+            }
+            
+            // Отображаем товары
+            let itemsHtml = '';
+            data.items.forEach(item => {
+                itemsHtml += `
+                    <div class="cart-item" id="cart-item-${item.id}">
+                        <div class="cart-item-image">
+                            <img src="${item.image}" alt="${item.name}">
+                        </div>
+                        <div class="cart-item-name">${item.name}</div>
+                        <div class="cart-item-price">${item.price} ₽</div>
+                        <div class="cart-quantity">
+                            <button class="quantity-btn" onclick="updateQuantity(${item.id}, 'decrease')">-</button>
+                            <span class="quantity-value" id="quantity-${item.id}">${item.quantity}</span>
+                            <button class="quantity-btn" onclick="updateQuantity(${item.id}, 'increase')">+</button>
+                        </div>
+                        <div class="cart-item-total" id="total-${item.id}">${item.total} ₽</div>
+                        <i class="fas fa-trash remove-item" onclick="removeItem(${item.id})"></i>
+                    </div>
+                `;
+            });
+            cartItems.innerHTML = itemsHtml;
+            
+            // Отображаем итог
+            cartSummary.innerHTML = `
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span>Товаров:</span>
+                        <span>${data.items.length} шт.</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 1.3rem; font-weight: 700; margin-top: 20px;">
+                        <span>Итого:</span>
+                        <span style="color: var(--primary);">${data.total} ₽</span>
+                    </div>
+                </div>
+            `;
+            
+            checkoutBtn.style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('cartItems').innerHTML = '<div class="alert alert-danger">Ошибка загрузки корзины</div>';
+        });
+}
+
+// Обновление количества
+function updateQuantity(itemId, action) {
+    const quantityElement = document.getElementById(`quantity-${itemId}`);
+    let newQuantity = parseInt(quantityElement.textContent);
+    
+    if (action === 'increase') {
+        newQuantity++;
+    } else if (action === 'decrease') {
+        newQuantity--;
+        if (newQuantity < 1) {
+            removeItem(itemId);
+            return;
+        }
+    }
+    
+    fetch(`/api/cart/update/${itemId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ quantity: newQuantity })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Обновляем количество
+            quantityElement.textContent = newQuantity;
+            // Обновляем сумму товара
+            const itemTotal = data.items.find(i => i.id === itemId)?.total || 0;
+            document.getElementById(`total-${itemId}`).textContent = itemTotal + ' ₽';
+            // Обновляем общую сумму
+            loadCart(); // Перезагружаем для обновления итога
+            // Обновляем счетчик в шапке
+            document.getElementById('cartCount').textContent = data.cart_count;
+        }
+    });
+}
+
+// Удаление товара
+function removeItem(itemId) {
+    if (!confirm('Удалить товар из корзины?')) return;
+    
+    fetch(`/api/cart/update/${itemId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ quantity: 0 })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadCart();
+            document.getElementById('cartCount').textContent = data.cart_count;
+            if (data.cart_count === 0) {
+                document.getElementById('cartCount').style.display = 'none';
+            }
+        }
+    });
+}
+
+// Загружаем корзину при загрузке страницы
+document.addEventListener('DOMContentLoaded', loadCart);
+</script>
+{% endblock %}

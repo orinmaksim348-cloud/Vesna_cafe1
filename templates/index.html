@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Главная{% endblock %}
+
+{% block content %}
+<!-- Герой секция с фото кафе -->
+<section class="hero" style="background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('{{ cafe_image if cafe_image_exists else "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200" }}'); background-size: cover; background-position: center; height: 500px; display: flex; align-items: center; justify-content: center; color: white; text-align: center; border-radius: 0 0 30px 30px; margin-bottom: 40px;">
+    <div class="container">
+        <h1 style="font-size: 4rem; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">{{ cafe_name }}</h1>
+        <p style="font-size: 1.5rem; margin-bottom: 30px;">{{ cafe_slogan }}</p>
+        <div>
+            <a href="{{ url_for('menu') }}" class="btn btn-primary btn-lg">Посмотреть меню</a>
+        </div>
+    </div>
+</section>
+
+<!-- Информация о кафе -->
+<section class="container mb-5">
+    <div class="row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center;">
+        <div>
+            <h2 style="color: var(--primary-dark); margin-bottom: 20px;">О нас</h2>
+            <p style="font-size: 1.1rem; line-height: 1.8; margin-bottom: 20px;">{{ cafe_description }}</p>
+            
+            <div style="margin-top: 30px;">
+                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                    <i class="fas fa-map-marker-alt" style="color: var(--primary); font-size: 1.5rem; width: 40px;"></i>
+                    <span>{{ cafe_address }}</span>
+                </div>
+                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                    <i class="fas fa-phone" style="color: var(--primary); font-size: 1.5rem; width: 40px;"></i>
+                    <span>{{ cafe_phone }}</span>
+                </div>
+                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                    <i class="fas fa-envelope" style="color: var(--primary); font-size: 1.5rem; width: 40px;"></i>
+                    <span>{{ cafe_email }}</span>
+                </div>
+                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                    <i class="fas fa-clock" style="color: var(--primary); font-size: 1.5rem; width: 40px;"></i>
+                    <span>{{ cafe_work_hours }}</span>
+                </div>
+            </div>
+            
+            {% if social_instagram or social_vk or social_telegram %}
+            <div style="margin-top: 30px;">
+                <h4>Мы в соцсетях:</h4>
+                <div style="display: flex; gap: 15px; margin-top: 15px;">
+                    {% if social_instagram %}
+                    <a href="{{ social_instagram }}" target="_blank" style="color: var(--primary); font-size: 2rem;">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    {% endif %}
+                    {% if social_vk %}
+                    <a href="{{ social_vk }}" target="_blank" style="color: var(--primary); font-size: 2rem;">
+                        <i class="fab fa-vk"></i>
+                    </a>
+                    {% endif %}
+                    {% if social_telegram %}
+                    <a href="{{ social_telegram }}" target="_blank" style="color: var(--primary); font-size: 2rem;">
+                        <i class="fab fa-telegram"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div>
+            <img src="{{ cafe_image2 if cafe_image2_exists else 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600' }}" 
+                 alt="Интерьер кафе" 
+                 style="width: 100%; border-radius: 20px; box-shadow: var(--shadow);">
+        </div>
+    </div>
+</section>
+
+<!-- Карта -->
+<section class="container mb-5">
+    <h2 class="section-title">Как нас найти</h2>
+    
+    <div style="border-radius: 20px; overflow: hidden; box-shadow: var(--shadow);">
+        <iframe 
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2245.334545372345!2d{{ cafe_longitude }}!3d{{ cafe_latitude }}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2z{{ cafe_latitude }},{{ cafe_longitude }}!5e0!3m2!1sru!2sru!4v1620000000000!5m2!1sru!2sru" 
+            width="100%" 
+            height="450" 
+            style="border:0;" 
+            allowfullscreen="" 
+            loading="lazy">
+        </iframe>
+    </div>
+    
+    <div style="text-align: center; margin-top: 20px;">
+        <p style="font-size: 1.1rem;">
+            <i class="fas fa-map-pin" style="color: var(--primary);"></i> 
+            {{ cafe_address }}
+        </p>
+    </div>
+</section>
+
+<!-- Преимущества -->
+<section class="container mb-5">
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px;">
+        <div class="card" style="text-align: center; padding: 30px;">
+            <i class="fas fa-leaf" style="font-size: 3rem; color: var(--primary); margin-bottom: 20px;"></i>
+            <h4>Свежие продукты</h4>
+            <p>Используем только свежие и качественные продукты от проверенных поставщиков</p>
+        </div>
+        <div class="card" style="text-align: center; padding: 30px;">
+            <i class="fas fa-heart" style="font-size: 3rem; color: var(--primary); margin-bottom: 20px;"></i>
+            <h4>Домашняя атмосфера</h4>
+            <p>У нас вы почувствуете себя как дома в кругу близких</p>
+        </div>
+        <div class="card" style="text-align: center; padding: 30px;">
+            <i class="fas fa-truck" style="font-size: 3rem; color: var(--primary); margin-bottom: 20px;"></i>
+            <h4>Быстрая доставка</h4>
+            <p>Доставим ваш заказ горячим прямо к двери</p>
+        </div>
+    </div>
+</section>
+
+<!-- Кнопка вызова такси (опционально) -->
+<section class="container mb-5 text-center">
+    <a href="https://www.google.com/maps/dir/?api=1&destination={{ cafe_latitude }},{{ cafe_longitude }}" 
+       target="_blank" 
+       class="btn btn-success btn-lg">
+        <i class="fas fa-taxi"></i> Построить маршрут
+    </a>
+</section>
+{% endblock %}
