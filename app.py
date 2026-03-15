@@ -4,9 +4,7 @@ from datetime import datetime
 import os
 import logging
 import sys
-
-# ВНИМАНИЕ: импортируем psycopg, но SQLAlchemy будет использовать его автоматически
-# Нам не нужно импортировать psycopg напрямую
+from sqlalchemy import text
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -32,10 +30,8 @@ SOCIAL_VK = "https://vk.com/vesna.cafe"
 SOCIAL_TELEGRAM = "https://t.me/vesna_cafe"
 
 # ==================== НАСТРОЙКИ БАЗЫ ДАННЫХ ====================
-# Приоритет: переменная окружения > .env файл > значение по умолчанию
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
-# Если DATABASE_URL не задан через переменную окружения, пробуем загрузить из .env
 if not DATABASE_URL:
     try:
         from dotenv import load_dotenv
@@ -43,47 +39,45 @@ if not DATABASE_URL:
         DATABASE_URL = os.environ.get('DATABASE_URL')
         logger.info("📄 Загружены переменные из .env файла")
     except ImportError:
-        logger.warning("⚠️ python-dotenv не установлен, переменные окружения не загружены из .env")
+        logger.warning("⚠️ python-dotenv не установлен")
 
-# Если всё ещё нет DATABASE_URL, используем SQLite для разработки
 if not DATABASE_URL:
     DATABASE_URL = 'sqlite:///cafe_vesna.db'
     logger.warning("⚠️ DATABASE_URL не найден, используется SQLite для разработки")
-    logger.warning("⚠️ Для продакшена установите переменную окружения DATABASE_URL")
 else:
-    # Для PostgreSQL на Timeweb нужно исправить формат URL
     if DATABASE_URL.startswith('postgres://'):
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
         logger.info("🔄 Исправлен формат URL: postgres:// -> postgresql://")
     
-    # Проверяем, что драйвер PostgreSQL установлен
     try:
         import psycopg
         logger.info(f"✅ Используется psycopg версии {psycopg.__version__}")
-    except ImportError:
-        logger.error("❌ psycopg не установлен! Установите: pip install psycopg[binary]")
+    except ImportError as e:
+        logger.error(f"❌ psycopg не установлен: {e}")
+        logger.error("📦 Установите: pip install psycopg[binary]==3.2.13")
         sys.exit(1)
-    
-    logger.info(f"✅ Подключение к PostgreSQL: {DATABASE_URL.split('@')[1] if '@' in DATABASE_URL else DATABASE_URL}")
 
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-do-not-use-in-production')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24).hex())
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['DEBUG'] = os.environ.get('FLASK_ENV') == 'development'
 app.config['JSON_AS_ASCII'] = False
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-# Настройки для пула соединений (важно для PostgreSQL)
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_size': 10,
     'pool_recycle': 300,
     'pool_pre_ping': True,
+    'connect_args': {
+        'connect_timeout': 10
+    }
 }
 
-# Убеждаемся, что папка для изображений существует
 IMAGES_FOLDER = os.path.join(app.root_path, 'static', 'images')
 os.makedirs(IMAGES_FOLDER, exist_ok=True)
 
-# Инициализация SQLAlchemy
 db = SQLAlchemy(app)
 
 # ==================== МОДЕЛИ ДАННЫХ ====================
@@ -124,7 +118,6 @@ class Order(db.Model):
 
 # ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
 def image_exists(image_url):
-    """Проверяет, существует ли файл изображения"""
     if not image_url:
         return False
     filename = image_url.replace('/static/', 'static/')
@@ -132,13 +125,11 @@ def image_exists(image_url):
     return os.path.exists(filepath)
 
 def get_safe_image_url(image_url, default='/static/images/placeholder.jpg'):
-    """Возвращает URL изображения, если файл существует, иначе заглушку"""
     if image_url and image_exists(image_url):
         return image_url
     return default
 
 def create_placeholder_image(filename):
-    """Создает простую заглушку для изображения"""
     filepath = os.path.join(IMAGES_FOLDER, filename)
     if not os.path.exists(filepath):
         try:
@@ -153,14 +144,11 @@ def create_placeholder_image(filename):
 
 # ==================== ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ ====================
 def init_database():
-    """Инициализирует базу данных с тестовыми блюдами"""
     with app.app_context():
         try:
-            # Проверяем, нужно ли создавать таблицы
             db.create_all()
             logger.info("✅ Таблицы проверены/созданы")
             
-            # Проверяем, есть ли уже данные
             if MenuItem.query.count() > 0:
                 logger.info(f"📊 База данных уже содержит {MenuItem.query.count()} блюд")
                 return
@@ -282,7 +270,6 @@ def init_database():
             logger.error(f"❌ Ошибка при инициализации базы данных: {e}")
             db.session.rollback()
 
-# Инициализируем базу данных при запуске
 with app.app_context():
     init_database()
 
@@ -310,7 +297,6 @@ def utility_processor():
     }
 
 # ==================== МАРШРУТЫ ====================
-
 @app.route('/')
 def index():
     try:
@@ -519,10 +505,8 @@ def about():
 def health():
     """Endpoint для проверки здоровья приложения"""
     try:
-        # Проверяем подключение к базе данных
-        db.session.execute('SELECT 1').scalar()
+        db.session.execute(text('SELECT 1')).scalar()
         
-        # Получаем информацию о драйвере
         db_driver = 'PostgreSQL' if 'postgresql' in DATABASE_URL else 'SQLite'
         psycopg_version = 'не используется'
         
@@ -538,7 +522,8 @@ def health():
             'database': 'connected',
             'db_driver': db_driver,
             'psycopg_version': psycopg_version,
-            'python_version': sys.version
+            'python_version': sys.version.split()[0],
+            'flask_version': Flask.__version__
         })
     except Exception as e:
         return jsonify({
@@ -551,6 +536,8 @@ if __name__ == '__main__':
     logger.info("=" * 60)
     logger.info(f"🍽️  Запуск {CAFE_NAME}")
     logger.info(f"📍 Адрес: {CAFE_ADDRESS}")
+    logger.info(f"🐍 Python версия: {sys.version.split()[0]}")
+    logger.info(f"🔷 Flask версия: {Flask.__version__}")
     
     if 'postgresql' in DATABASE_URL:
         logger.info(f"🗄️  База данных: PostgreSQL")
@@ -558,7 +545,7 @@ if __name__ == '__main__':
             import psycopg
             logger.info(f"📦 psycopg версия: {psycopg.__version__}")
         except:
-            logger.warning("⚠️ psycopg не импортирован")
+            pass
     else:
         logger.info(f"🗄️  База данных: SQLite (только для разработки)")
     
