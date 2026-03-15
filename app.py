@@ -3,9 +3,10 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
 import logging
-import psycopg2
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import sys
+
+# ВНИМАНИЕ: импортируем psycopg, но SQLAlchemy будет использовать его автоматически
+# Нам не нужно импортировать psycopg напрямую
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -33,23 +34,37 @@ SOCIAL_TELEGRAM = "https://t.me/vesna_cafe"
 # ==================== НАСТРОЙКИ БАЗЫ ДАННЫХ ====================
 # Приоритет: переменная окружения > .env файл > значение по умолчанию
 DATABASE_URL = os.environ.get('DATABASE_URL')
+
+# Если DATABASE_URL не задан через переменную окружения, пробуем загрузить из .env
 if not DATABASE_URL:
     try:
         from dotenv import load_dotenv
         load_dotenv()
         DATABASE_URL = os.environ.get('DATABASE_URL')
+        logger.info("📄 Загружены переменные из .env файла")
     except ImportError:
-        pass
+        logger.warning("⚠️ python-dotenv не установлен, переменные окружения не загружены из .env")
 
 # Если всё ещё нет DATABASE_URL, используем SQLite для разработки
 if not DATABASE_URL:
     DATABASE_URL = 'sqlite:///cafe_vesna.db'
     logger.warning("⚠️ DATABASE_URL не найден, используется SQLite для разработки")
+    logger.warning("⚠️ Для продакшена установите переменную окружения DATABASE_URL")
 else:
     # Для PostgreSQL на Timeweb нужно исправить формат URL
     if DATABASE_URL.startswith('postgres://'):
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-    logger.info(f"✅ Подключение к PostgreSQL: {DATABASE_URL.split('@')[1]}")
+        logger.info("🔄 Исправлен формат URL: postgres:// -> postgresql://")
+    
+    # Проверяем, что драйвер PostgreSQL установлен
+    try:
+        import psycopg
+        logger.info(f"✅ Используется psycopg версии {psycopg.__version__}")
+    except ImportError:
+        logger.error("❌ psycopg не установлен! Установите: pip install psycopg[binary]")
+        sys.exit(1)
+    
+    logger.info(f"✅ Подключение к PostgreSQL: {DATABASE_URL.split('@')[1] if '@' in DATABASE_URL else DATABASE_URL}")
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-do-not-use-in-production')
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
@@ -506,16 +521,47 @@ def health():
     try:
         # Проверяем подключение к базе данных
         db.session.execute('SELECT 1').scalar()
-        return jsonify({'status': 'healthy', 'database': 'connected'})
+        
+        # Получаем информацию о драйвере
+        db_driver = 'PostgreSQL' if 'postgresql' in DATABASE_URL else 'SQLite'
+        psycopg_version = 'не используется'
+        
+        if 'postgresql' in DATABASE_URL:
+            try:
+                import psycopg
+                psycopg_version = psycopg.__version__
+            except:
+                pass
+        
+        return jsonify({
+            'status': 'healthy',
+            'database': 'connected',
+            'db_driver': db_driver,
+            'psycopg_version': psycopg_version,
+            'python_version': sys.version
+        })
     except Exception as e:
-        return jsonify({'status': 'unhealthy', 'error': str(e)}), 500
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e)
+        }), 500
 
 # ==================== ЗАПУСК ПРИЛОЖЕНИЯ ====================
 if __name__ == '__main__':
     logger.info("=" * 60)
     logger.info(f"🍽️  Запуск {CAFE_NAME}")
     logger.info(f"📍 Адрес: {CAFE_ADDRESS}")
-    logger.info(f"🗄️  База данных: {app.config['SQLALCHEMY_DATABASE_URI'].split('@')[1] if '@' in app.config['SQLALCHEMY_DATABASE_URI'] else 'SQLite'}")
+    
+    if 'postgresql' in DATABASE_URL:
+        logger.info(f"🗄️  База данных: PostgreSQL")
+        try:
+            import psycopg
+            logger.info(f"📦 psycopg версия: {psycopg.__version__}")
+        except:
+            logger.warning("⚠️ psycopg не импортирован")
+    else:
+        logger.info(f"🗄️  База данных: SQLite (только для разработки)")
+    
     logger.info("=" * 60)
     
     port = int(os.environ.get('PORT', 5000))
