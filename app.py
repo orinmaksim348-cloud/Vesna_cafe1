@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 import logging
 import sys
+import flask  # Добавлен импорт модуля flask для получения версии
 from sqlalchemy import text
 
 # Настройка логирования
@@ -524,7 +525,7 @@ def health():
             'db_driver': db_driver,
             'psycopg_version': psycopg_version,
             'python_version': sys.version.split()[0],
-            'flask_version': Flask.__version__
+            'flask_version': flask.__version__  # Исправлено: flask.__version__ вместо Flask.__version__
         })
     except Exception as e:
         return jsonify({
@@ -551,13 +552,233 @@ def debug_db():
     
     return jsonify(info)
 
+# ==================== АДМИН-ПАНЕЛЬ ====================
+
+from functools import wraps
+from werkzeug.utils import secure_filename
+import json
+import os
+
+# Настройки для загрузки файлов
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Декоратор для проверки админ-доступа
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    """Вход в админ-панель"""
+    if request.method == 'POST':
+        password = request.form.get('password')
+        # Пароль по умолчанию: admin123 (смените на свой!)
+        if password == 'admin123':
+            session['admin_logged_in'] = True
+            flash('Добро пожаловать в админ-панель!', 'success')
+            return redirect(url_for('admin_dashboard'))
+        else:
+            flash('Неверный пароль!', 'danger')
+    return render_template('admin/login.html')
+
+@app.route('/admin/logout')
+def admin_logout():
+    """Выход из админ-панели"""
+    session.pop('admin_logged_in', None)
+    flash('Вы вышли из админ-панели', 'info')
+    return redirect(url_for('index'))
+
+@app.route('/admin')
+def admin_dashboard():
+    """Главная админ-панели"""
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    total_items = MenuItem.query.count()
+    total_orders = Order.query.count()
+    recent_orders = Order.query.order_by(Order.created_at.desc()).limit(5).all()
+    
+    return render_template('admin/dashboard.html', 
+                         total_items=total_items, 
+                         total_orders=total_orders,
+                         recent_orders=recent_orders)
+
+@app.route('/admin/menu')
+@admin_required
+def admin_menu():
+    """Управление меню"""
+    items = MenuItem.query.order_by(MenuItem.category, MenuItem.name).all()
+    categories = db.session.query(MenuItem.category).distinct().all()
+    categories = [c[0] for c in categories if c[0]]
+    return render_template('admin/menu.html', items=items, categories=categories)
+
+@app.route('/admin/menu/add', methods=['GET', 'POST'])
+@admin_required
+def admin_add_item():
+    """Добавление блюда"""
+    if request.method == 'POST':
+        try:
+            name = request.form.get('name')
+            description = request.form.get('description')
+            price = float(request.form.get('price'))
+            category = request.form.get('category')
+            weight = request.form.get('weight')
+            calories = request.form.get('calories')
+            is_popular = request.form.get('is_popular') == 'on'
+            is_special = request.form.get('is_special') == 'on'
+            
+            # Обработка изображения
+            image_url = '/static/images/placeholder.jpg'
+            if 'image' in request.files:
+                file = request.files['image']
+                if file and file.filename and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    # Генерируем уникальное имя
+                    name_parts = filename.rsplit('.', 1)
+                    unique_filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{name_parts[0]}.{name_parts[1]}"
+                    filepath = os.path.join(IMAGES_FOLDER, unique_filename)
+                    file.save(filepath)
+                    image_url = f'/static/images/{unique_filename}'
+            
+            new_item = MenuItem(
+                name=name,
+                description=description,
+                price=price,
+                category=category,
+                weight=weight,
+                calories=int(calories) if calories else None,
+                image_url=image_url,
+                is_popular=is_popular,
+                is_special=is_special
+            )
+            
+            db.session.add(new_item)
+            db.session.commit()
+            flash('Блюдо успешно добавлено!', 'success')
+            return redirect(url_for('admin_menu'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ошибка при добавлении: {str(e)}', 'danger')
+    
+    return render_template('admin/item_form.html', title='Добавить блюдо', item=None)
+
+@app.route('/admin/menu/edit/<int:item_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_item(item_id):
+    """Редактирование блюда"""
+    item = MenuItem.query.get_or_404(item_id)
+    
+    if request.method == 'POST':
+        try:
+            item.name = request.form.get('name')
+            item.description = request.form.get('description')
+            item.price = float(request.form.get('price'))
+            item.category = request.form.get('category')
+            item.weight = request.form.get('weight')
+            item.calories = int(request.form.get('calories')) if request.form.get('calories') else None
+            item.is_popular = request.form.get('is_popular') == 'on'
+            item.is_special = request.form.get('is_special') == 'on'
+            
+            # Обработка нового изображения
+            if 'image' in request.files:
+                file = request.files['image']
+                if file and file.filename and allowed_file(file.filename):
+                    # Удаляем старое изображение если оно не заглушка
+                    if item.image_url and 'placeholder' not in item.image_url:
+                        old_path = os.path.join(app.root_path, item.image_url.lstrip('/'))
+                        if os.path.exists(old_path):
+                            os.remove(old_path)
+                    
+                    filename = secure_filename(file.filename)
+                    name_parts = filename.rsplit('.', 1)
+                    unique_filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{name_parts[0]}.{name_parts[1]}"
+                    filepath = os.path.join(IMAGES_FOLDER, unique_filename)
+                    file.save(filepath)
+                    item.image_url = f'/static/images/{unique_filename}'
+            
+            db.session.commit()
+            flash('Блюдо успешно обновлено!', 'success')
+            return redirect(url_for('admin_menu'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ошибка при обновлении: {str(e)}', 'danger')
+    
+    return render_template('admin/item_form.html', title='Редактировать блюдо', item=item)
+
+@app.route('/admin/menu/delete/<int:item_id>', methods=['POST'])
+@admin_required
+def admin_delete_item(item_id):
+    """Удаление блюда"""
+    try:
+        item = MenuItem.query.get_or_404(item_id)
+        
+        # Удаляем изображение если оно не заглушка
+        if item.image_url and 'placeholder' not in item.image_url:
+            old_path = os.path.join(app.root_path, item.image_url.lstrip('/'))
+            if os.path.exists(old_path):
+                os.remove(old_path)
+        
+        db.session.delete(item)
+        db.session.commit()
+        flash('Блюдо успешно удалено!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ошибка при удалении: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin_menu'))
+
+@app.route('/admin/orders')
+@admin_required
+def admin_orders():
+    """Управление заказами"""
+    orders = Order.query.order_by(Order.created_at.desc()).all()
+    return render_template('admin/orders.html', orders=orders)
+
+@app.route('/admin/orders/update/<int:order_id>', methods=['POST'])
+@admin_required
+def admin_update_order(order_id):
+    """Обновление статуса заказа"""
+    try:
+        order = Order.query.get_or_404(order_id)
+        status = request.form.get('status')
+        order.status = status
+        db.session.commit()
+        flash('Статус заказа обновлен!', 'success')
+    except Exception as e:
+        flash(f'Ошибка: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin_orders'))
+
+@app.route('/admin/orders/delete/<int:order_id>', methods=['POST'])
+@admin_required
+def admin_delete_order(order_id):
+    """Удаление заказа"""
+    try:
+        order = Order.query.get_or_404(order_id)
+        db.session.delete(order)
+        db.session.commit()
+        flash('Заказ удален!', 'success')
+    except Exception as e:
+        flash(f'Ошибка: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin_orders'))
+
 # ==================== ЗАПУСК ПРИЛОЖЕНИЯ ====================
 if __name__ == '__main__':
     logger.info("=" * 60)
     logger.info(f"🍽️  Запуск {CAFE_NAME}")
     logger.info(f"📍 Адрес: {CAFE_ADDRESS}")
     logger.info(f"🐍 Python версия: {sys.version.split()[0]}")
-    logger.info(f"🔷 Flask версия: {Flask.__version__}")
+    logger.info(f"🔷 Flask версия: {flask.__version__}")  # Исправлено: flask.__version__ вместо Flask.__version__
     
     if 'postgresql' in DATABASE_URL:
         logger.info(f"🗄️  База данных: PostgreSQL")

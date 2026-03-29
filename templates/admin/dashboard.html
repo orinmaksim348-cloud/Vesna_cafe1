@@ -1,0 +1,97 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Главная{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1><i class="fas fa-tachometer-alt"></i> Панель управления</h1>
+    <p>Добро пожаловать в админ-панель кафе "ВЕСНА"</p>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-utensils"></i>
+        </div>
+        <div class="stat-info">
+            <h3>{{ total_items }}</h3>
+            <p>Блюд в меню</p>
+        </div>
+        <a href="{{ url_for('admin_menu') }}" class="stat-link">Управлять →</a>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-shopping-cart"></i>
+        </div>
+        <div class="stat-info">
+            <h3>{{ total_orders }}</h3>
+            <p>Всего заказов</p>
+        </div>
+        <a href="{{ url_for('admin_orders') }}" class="stat-link">Управлять →</a>
+    </div>
+</div>
+
+<div class="recent-orders">
+    <div class="card-header">
+        <h2><i class="fas fa-clock"></i> Последние заказы</h2>
+        <a href="{{ url_for('admin_orders') }}" class="btn btn-sm">Все заказы →</a>
+    </div>
+    
+    {% if recent_orders %}
+    <div class="table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>№ заказа</th>
+                    <th>Клиент</th>
+                    <th>Сумма</th>
+                    <th>Статус</th>
+                    <th>Дата</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in recent_orders %}
+                <tr>
+                    <td>{{ order.order_number }}</td>
+                    <td>{{ order.customer_name }}</td>
+                    <td>{{ order.total }} ₽</td>
+                    <td>
+                        <span class="status-badge status-{{ order.status }}">
+                            {% if order.status == 'new' %}Новый
+                            {% elif order.status == 'confirmed' %}Подтвержден
+                            {% elif order.status == 'preparing' %}Готовится
+                            {% elif order.status == 'delivering' %}Доставляется
+                            {% elif order.status == 'delivered' %}Доставлен
+                            {% else %}{{ order.status }}{% endif %}
+                        </span>
+                    </td>
+                    <td>{{ order.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-center" style="padding: 40px;">Нет заказов</p>
+    {% endif %}
+</div>
+
+<div class="quick-actions">
+    <h2><i class="fas fa-bolt"></i> Быстрые действия</h2>
+    <div class="actions-grid">
+        <a href="{{ url_for('admin_add_item') }}" class="action-card">
+            <i class="fas fa-plus-circle"></i>
+            <span>Добавить блюдо</span>
+        </a>
+        <a href="{{ url_for('admin_menu') }}" class="action-card">
+            <i class="fas fa-edit"></i>
+            <span>Редактировать меню</span>
+        </a>
+        <a href="{{ url_for('admin_orders') }}" class="action-card">
+            <i class="fas fa-truck"></i>
+            <span>Управлять заказами</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

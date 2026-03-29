@@ -1,0 +1,80 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1>{{ title }}</h1>
+    
+    <form method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label>Название блюда *</label>
+            <input type="text" name="name" class="form-control" value="{{ item.name if item else '' }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Описание</label>
+            <textarea name="description" class="form-control" rows="4">{{ item.description if item else '' }}</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>Цена (₽) *</label>
+            <input type="number" name="price" class="form-control" step="0.01" value="{{ item.price if item else '' }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Категория *</label>
+            <input type="text" name="category" class="form-control" value="{{ item.category if item else '' }}" required placeholder="Салаты, Супы, Горячее, Десерты, Напитки">
+        </div>
+        
+        <div class="form-group">
+            <label>Вес/Объем</label>
+            <input type="text" name="weight" class="form-control" value="{{ item.weight if item else '' }}" placeholder="250г, 300мл">
+        </div>
+        
+        <div class="form-group">
+            <label>Калории (ккал)</label>
+            <input type="number" name="calories" class="form-control" value="{{ item.calories if item else '' }}">
+        </div>
+        
+        <div class="form-group">
+            <label>Изображение</label>
+            <input type="file" name="image" class="form-control" accept="image/*" onchange="previewImage(this)">
+            {% if item and item.image_url and 'placeholder' not in item.image_url %}
+            <img src="{{ item.image_url }}" class="image-preview" id="imagePreview">
+            {% else %}
+            <img id="imagePreview" class="image-preview" style="display: none;">
+            {% endif %}
+        </div>
+        
+        <div class="form-group checkbox-group">
+            <input type="checkbox" name="is_popular" {% if item and item.is_popular %}checked{% endif %}>
+            <label>Хит продаж</label>
+        </div>
+        
+        <div class="form-group checkbox-group">
+            <input type="checkbox" name="is_special" {% if item and item.is_special %}checked{% endif %}>
+            <label>Специальное предложение</label>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+            <a href="{{ url_for('admin_menu') }}" class="btn" style="background: #95a5a6; color: white;">Отмена</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function previewImage(input) {
+    const preview = document.getElementById('imagePreview');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.style.display = 'block';
+            preview.src = e.target.result;
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
+{% endblock %}
