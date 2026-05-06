@@ -9,30 +9,30 @@
     <div class="row" style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
         <!-- Форма заказа -->
         <div class="bg-white" style="padding: 30px; border-radius: 15px; box-shadow: var(--shadow);">
-            <form method="POST" id="orderForm">
+            <form method="POST" id="orderForm" action="{{ url_for('checkout') }}">
                 <h3 style="margin-bottom: 20px;">Контактные данные</h3>
                 
                 <div class="form-group">
                     <label class="form-label">Ваше имя *</label>
-                    <input type="text" name="name" class="form-control" required>
+                    <input type="text" name="name" class="form-control" id="customerName" required>
                 </div>
                 
                 <div class="form-group">
                     <label class="form-label">Телефон *</label>
-                    <input type="tel" name="phone" class="form-control" placeholder="+7 (999) 123-45-67" required>
+                    <input type="tel" name="phone" class="form-control" id="customerPhone" placeholder="+7 (999) 123-45-67" required>
                 </div>
                 
                 <div class="form-group">
                     <label class="form-label">Адрес доставки *</label>
-                    <input type="text" name="address" class="form-control" placeholder="Улица, дом, квартира" required>
+                    <input type="text" name="address" class="form-control" id="customerAddress" placeholder="Улица, дом, квартира" required>
                 </div>
                 
                 <div class="form-group">
                     <label class="form-label">Комментарий к заказу</label>
-                    <textarea name="comment" class="form-control" placeholder="Пожелания, этаж, домофон..."></textarea>
+                    <textarea name="comment" class="form-control" id="orderComment" placeholder="Пожелания, этаж, домофон..."></textarea>
                 </div>
                 
-                <button type="submit" class="btn btn-success w-100" style="padding: 15px;">
+                <button type="submit" class="btn btn-success w-100" style="padding: 15px;" id="submitOrderBtn">
                     <i class="fas fa-check"></i> Подтвердить заказ
                 </button>
             </form>
@@ -57,7 +57,48 @@
     </div>
 </div>
 
+<style>
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #2e7d32;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+    .row {
+        grid-template-columns: 1fr !important;
+    }
+}
+</style>
+
 <script>
+// Проверка корзины при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/cart')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.items || data.items.length === 0) {
+                alert('Корзина пуста! Добавьте блюда в корзину.');
+                window.location.href = "{{ url_for('menu') }}";
+                return;
+            }
+            loadOrderSummary();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            window.location.href = "{{ url_for('menu') }}";
+        });
+});
+
 // Загрузка информации о заказе
 function loadOrderSummary() {
     fetch('/api/cart')
@@ -65,7 +106,7 @@ function loadOrderSummary() {
         .then(data => {
             const summary = document.getElementById('orderSummary');
             
-            if (data.items.length === 0) {
+            if (!data.items || data.items.length === 0) {
                 window.location.href = "{{ url_for('menu') }}";
                 return;
             }
@@ -74,34 +115,93 @@ function loadOrderSummary() {
             data.items.forEach(item => {
                 itemsHtml += `
                     <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0;">
-                        <span>${item.name} x${item.quantity}</span>
+                        <span>${escapeHtml(item.name)} x${item.quantity}</span>
                         <span>${item.total} ₽</span>
                     </div>
                 `;
             });
             
+            const deliveryFee = data.total >= 1000 ? 0 : 200;
+            const finalTotal = data.total + deliveryFee;
+            
             summary.innerHTML = `
                 ${itemsHtml}
-                <div style="display: flex; justify-content: space-between; font-size: 1.3rem; font-weight: 700; margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px;">
+                    <span>Доставка:</span>
+                    <span>${deliveryFee === 0 ? 'Бесплатно' : deliveryFee + ' ₽'}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 1.3rem; font-weight: 700; margin-top: 20px; padding-top: 15px; border-top: 2px solid #f0f0f0;">
                     <span>Итого:</span>
-                    <span style="color: var(--primary);">${data.total} ₽</span>
+                    <span style="color: var(--primary);">${finalTotal} ₽</span>
                 </div>
             `;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('orderSummary').innerHTML = '<p style="color: red;">Ошибка загрузки корзины</p>';
         });
 }
 
-// Валидация телефона
-document.getElementById('orderForm')?.addEventListener('submit', function(e) {
-    const phone = this.phone.value;
-    const phoneRegex = /^\+?[78][0-9]{10}$/;
-    
-    if (!phoneRegex.test(phone.replace(/\D/g, ''))) {
-        e.preventDefault();
-        alert('Введите корректный номер телефона');
-    }
-});
+// Функция для экранирования HTML
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
-// Загружаем при загрузке страницы
-document.addEventListener('DOMContentLoaded', loadOrderSummary);
+// Валидация и отправка формы
+document.getElementById('orderForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const name = document.getElementById('customerName').value.trim();
+    const phone = document.getElementById('customerPhone').value.trim();
+    const address = document.getElementById('customerAddress').value.trim();
+    
+    if (!name) {
+        alert('Пожалуйста, введите ваше имя');
+        document.getElementById('customerName').focus();
+        return false;
+    }
+    
+    if (!phone) {
+        alert('Пожалуйста, введите номер телефона');
+        document.getElementById('customerPhone').focus();
+        return false;
+    }
+    
+    if (!address) {
+        alert('Пожалуйста, введите адрес доставки');
+        document.getElementById('customerAddress').focus();
+        return false;
+    }
+    
+    // Валидация телефона
+    const cleanPhone = phone.replace(/[^0-9+]/g, '');
+    const digitsOnly = cleanPhone.replace(/[^0-9]/g, '');
+    
+    if (digitsOnly.length < 10 || digitsOnly.length > 12) {
+        alert('Введите корректный номер телефона (10-12 цифр)');
+        document.getElementById('customerPhone').focus();
+        return false;
+    }
+    
+    // Проверяем корзину еще раз
+    fetch('/api/cart')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.items || data.items.length === 0) {
+                alert('Корзина пуста! Добавьте блюда в корзину.');
+                window.location.href = "{{ url_for('menu') }}";
+                return;
+            }
+            // Отправляем форму
+            e.target.submit();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при проверке корзины. Попробуйте еще раз.');
+        });
+});
 </script>
 {% endblock %}

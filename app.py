@@ -441,7 +441,7 @@ def checkout():
             
             cart = session.get('cart', {})
             
-            if not cart:
+            if not cart or len(cart) == 0:
                 flash('Корзина пуста', 'warning')
                 return redirect(url_for('menu'))
             
@@ -457,7 +457,11 @@ def checkout():
                     })
                     total += item.price * quantity
             
-            order_number = f"VESNA-{datetime.now().strftime('%y%m%d%H%M')}-{len(items_list)}"
+            if total == 0:
+                flash('Корзина пуста', 'warning')
+                return redirect(url_for('menu'))
+            
+            order_number = f"VESNA-{datetime.now().strftime('%y%m%d%H%M%S')}"
             
             order = Order(
                 order_number=order_number,
@@ -473,8 +477,10 @@ def checkout():
             db.session.add(order)
             db.session.commit()
             
+            # Очищаем корзину
             session.pop('cart', None)
             
+            flash(f'Заказ #{order_number} успешно оформлен!', 'success')
             return render_template('order_success.html', order=order)
             
         except Exception as e:
@@ -482,6 +488,12 @@ def checkout():
             db.session.rollback()
             flash('Произошла ошибка при оформлении заказа', 'danger')
             return redirect(url_for('checkout'))
+    
+    # GET запрос - проверяем корзину
+    cart = session.get('cart', {})
+    if not cart or len(cart) == 0:
+        flash('Корзина пуста. Добавьте блюда в корзину.', 'warning')
+        return redirect(url_for('menu'))
     
     return render_template('checkout.html')
 
